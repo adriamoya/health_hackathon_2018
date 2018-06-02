@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
-from preprocessing.preprocessing import preprocessing, extract_features
+from preprocessing.preprocessing import preprocessing, extract_features, PCA_r
 
 from xgboost import XGBClassifier
 from models.xgboost_model import xgboost_fit
@@ -14,14 +14,91 @@ import matplotlib.pylab as plt
 from matplotlib.pylab import rcParams
 rcParams['figure.figsize'] = 12, 4
 
+# Variables for PCA (diagnostic)
+features_diagnostic = [
+'dummy_others.LL',
+"dummy_Cancer.linfoproliferativo",
+"dummy_SMD",
+"dummy_Leucemia.cronica",
+"dummy_LAL",
+"dummy_EICH",
+"dummy_SMPC",
+"dummy_Cancer.solido",
+"dummy_LMC",
+"dummy_TLPT",
+"dummy_others.LM",
+"dummy_Mieloma.like",
+"dummy_LLC"]
+
+# Variables for PCA (antibiotic)
+features_antibiotic = [
+'AMIKACINA_.MG.',
+'AMOXICILINA_.MG.',
+'AMPICILINA_.MG.',
+'AZITROMICINA_VIAL_.MG.',
+'AZTREONAM_.MG.',
+'CEFAZOLINA_.MG.',
+'CEFIXIMA_.MG.',
+'CEFOTAXIMA_.MG.',
+'CEFOXITINA_.MG.',
+'CEFTAROLINA_FOSAMIL_.MG.',
+'CEFTAZIDIMA_.MG.',
+'CEFTIBUTENO_.MG.',
+'CEFTOLOZANO_.UND.',
+'CEFTRIAXONA_.MG.',
+'CEFUROXIMA.AXETILO_.MG.',
+'CIPROFLOXACINO_.MG.',
+'CLARITROMICINA_.MG.',
+'CLINDAMICINA_.MG.',
+'CLOXACILINA_.MG.',
+'COTRIMOXAZOL_FORTE_.SULFAMETOXAZOL_.UND.',
+'COTRIMOXAZOL.SULFAMETOXAZOL_.MG.',
+'COTRIMOXAZOL.SULFAMETOXAZOL_.UND.',
+'DAPTOMICINA_.MG.',
+'DORIPENEM_.MG.',
+'DOXICICLINA_.MG.',
+'ERITROMICINA_.MG.',
+'ERTAPENEM_.MG.',
+'FOSFOMICINA_.MG.',
+'GENTAMICINA_.MG.',
+'IMIPENEM_.MG.',
+'LEVOFLOXACINO_.MG.',
+'LINEZOLID_.MG.',
+'MEROPENEM_.MG.',
+'METRONIDAZOL_.MG.',
+'METRONIDAZOL_COMP_.MG.',
+'MOXIFLOXACINO_.MG.',
+'NORFLOXACINO_.MG.',
+'PIPERACILINA_.MG.',
+'RIFABUTINA_.MG.',
+'RIFAMPICINA_.MG.',
+'SULFADIAZINA_.MG.',
+'TEICOPLANINA_.MG.',
+'TIGECICLINA_.MG.',
+'TOBRAMICINA_.MG.',
+'TOBRAMICINA_NEB_.MG.',
+'VANCOMICINA_.MG.']
+
 # Load data
 df_train = pd.read_csv('./data/train.csv')
 df_test = pd.read_csv('./data/test_challenge.csv')
 
 # Preprocessing
 # ------------------------------------------------
+
+# General preprocessing
 df_train_cln = preprocessing(df_train)
 df_test_cln = preprocessing(df_test)
+
+# PCA
+resulting_features_names = ['PC1_DIAGNOSTIC', 'PC2_DIAGNOSTIC']
+pc_diagnosis = PCA_r(df_train_cln, features_diagnostic, 2, resulting_features_names)
+
+resulting_features_names = ['PC1_ANTIBIOTIC', 'PC2_ANTIBIOTIC']
+pc_antibiotics = PCA_r(df_train_cln, features_antibiotic, 2, resulting_features_names)
+
+# Adding PCA columns to original dataset
+df_train_cln = pd.concat([df_train_cln, pc_diagnosis, pc_antibiotics], axis=1)
 
 # Modelling
 # ------------------------------------------------

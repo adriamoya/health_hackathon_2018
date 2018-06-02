@@ -1,6 +1,11 @@
 import numpy as np
 import pandas as pd
 
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+min_max_scaler = preprocessing.MinMaxScaler()
+
+
 def preprocessing(df):
     """ Preprocessing """
 
@@ -72,3 +77,19 @@ def extract_features(df):
     ].values # if index are necessary, remove .values
 
     return list(features)
+
+
+def PCA_r(df, features, num_comp, resulting_features_names):
+    """ PCA """
+    # Separating out the features
+    X = df.loc[:, features].values
+    X = min_max_scaler.fit_transform(X)
+    # Separating out the target
+    y = df[['MDR']]
+
+    pca = PCA(n_components=num_comp)
+    principalComponents = pca.fit_transform(X)
+    principalDf = pd.DataFrame(data = principalComponents
+                 , columns = [resulting_features_names[0], resulting_features_names[1]])
+
+    return principalDf
