@@ -50,3 +50,18 @@ def preprocessing(df):
     dates(df,'days_neutropenic_wo_fn','dummie_days_neutropenic_wo_fn')
 
     return df
+
+
+def extract_features(df):
+    """ Extract features """
+
+    features = df.columns[(~df.columns.str.contains('_.MG'))
+    & (~df.columns.str.contains('_.UND'))
+    & (~df.columns.str.contains('ID'))
+    & (~df.columns.str.contains('NHC'))
+    & (~df.columns.str.contains('start_'))
+    & (~df.columns.str.contains('Gender'))
+    & (~df.columns.str.contains('Past_positive_result_from'))
+    ].values # if index are necessary, remove .values
+
+    return list(features)
