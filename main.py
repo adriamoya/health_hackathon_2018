@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
 from preprocessing.preprocessing import preprocessing, extract_features, PCA_r
 
 from xgboost import XGBClassifier
@@ -102,7 +104,6 @@ df_train_cln = pd.concat([df_train_cln, pc_diagnosis, pc_antibiotics], axis=1)
 
 # Modelling
 # ------------------------------------------------
-
 FLAG = 'MDR'
 
 # extract features
@@ -121,6 +122,11 @@ train[FLAG] = list(y_train)
 
 test = pd.DataFrame(X_test, columns=[features])
 test[FLAG] = y_test
+
+# standardization
+scaler = StandardScaler()
+dtrain = pd.DataFrame(scaler.fit_transform(train[predictors]), columns=features)
+dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=features)
 
 # weight
 num_flags = sum(y_train)
@@ -144,9 +150,23 @@ xgb1 = XGBClassifier(
  subsample=0.8,
  colsample_bytree=0.8,
  objective= 'binary:logistic',
+ reg_alpha=0,
  nthread=4,
- scale_pos_weight=1,
+ #scale_pos_weight=1,
  seed=27)
 
-xgboost_fit(xgb1, train, test, predictors, target=FLAG)
-xgboost_fit(xgb1, train, test, predictors, target=FLAG, weight=w)
+xgb1 = xgboost_fit(xgb1, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
+
+# Submission
+# ------------------------------------------------
+df_subm = pd.DataFrame(scaler.transform(df_test_cln[predictors]), columns=features)
+
+y_subm = xgb1.predict_proba(df_subm[predictors])[:,1]
+
+df_subm['pred'] = y_subm
+
+submission = df_test_cln[['ID']]
+submission['MDR'] = y_subm
+
+# Write the final CSV file.
+submission.to_csv("./submissions/first-submission.csv", encoding='utf-8', index=False)

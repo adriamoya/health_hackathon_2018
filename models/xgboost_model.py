@@ -8,11 +8,11 @@ import matplotlib.pylab as plt
 from matplotlib.pylab import rcParams
 rcParams['figure.figsize'] = 12, 4
 
-def xgboost_fit(alg, dtrain, dtest, predictors, target, weight=None, verbose=0, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+def xgboost_fit(alg, dtrain, dtest, ytrain, ytest, predictors, target, weight=None, verbose=0, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
     if useTrainCV:
         xgb_param = alg.get_xgb_params()
-        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain[target].values.flatten(), weight=weight)
+        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=ytrain.flatten(), weight=weight)
         cvresult = xgb.cv(
             xgb_param,
             xgtrain,
@@ -25,7 +25,7 @@ def xgboost_fit(alg, dtrain, dtest, predictors, target, weight=None, verbose=0, 
         print(alg.get_params())
 
     # Fit the algorithm on the data
-    alg.fit(dtrain[predictors], dtrain[target].values.flatten(),eval_metric='auc')
+    alg.fit(dtrain[predictors], ytrain.flatten(),eval_metric='auc')
 
     # Predict training set:
     dtrain_predictions = alg.predict(dtrain[predictors])
@@ -33,15 +33,15 @@ def xgboost_fit(alg, dtrain, dtest, predictors, target, weight=None, verbose=0, 
 
     # Print model report:
     print( "\nModel Report (Train)")
-    print( "Accuracy : %.4g" % metrics.accuracy_score(dtrain[target].values, dtrain_predictions))
-    print( "AUC Score: %f" % metrics.roc_auc_score(dtrain[target].values, dtrain_predprob))
+    print( "Accuracy : %.4g" % metrics.accuracy_score(ytrain, dtrain_predictions))
+    print( "AUC Score: %f" % metrics.roc_auc_score(ytrain, dtrain_predprob))
 
     # Predict validation set:
     dtest_predprob = alg.predict_proba(dtest[predictors])[:,1]
 
     # Print model report:
     print( "\nModel Report (Test)")
-    print( "AUC Score: %f" % metrics.roc_auc_score(dtest[target].values, dtest_predprob))
+    print( "AUC Score: %f" % metrics.roc_auc_score(ytest, dtest_predprob))
 
     features_df = pd.DataFrame({'feature': pd.Series(predictors), 'importance': alg.feature_importances_})
     features_df = features_df.sort_values('importance', ascending=False)
@@ -52,3 +52,5 @@ def xgboost_fit(alg, dtrain, dtest, predictors, target, weight=None, verbose=0, 
     pyplot.xticks(ind, features_df['feature'].values, rotation='vertical')
     pyplot.ylabel('Feature Importance Score')
     pyplot.show()
+
+    return alg
