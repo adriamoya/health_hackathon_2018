@@ -5,6 +5,7 @@ from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV #Perforing grid search
+from sklearn import linear_model
 
 from preprocessing.preprocessing import preprocessing, extract_features, PCA_r
 
@@ -104,131 +105,91 @@ pc_antibiotics = PCA_r(df_train_cln, features_antibiotic, 2, resulting_features_
 # Adding PCA columns to original dataset
 df_train_cln = pd.concat([df_train_cln, pc_diagnosis, pc_antibiotics], axis=1)
 
-df_train_cln.drop('room_list', axis=1, inplace=True)
-df_test_cln.drop('room_list', axis=1, inplace=True)
-
 # ------------------------------------------------
 # Modelling
 # ------------------------------------------------
 FLAG = 'MDR'
 
 # extract features
-features = extract_features(df_train_cln, dummies_include=True)
+features = extract_features(df_train_cln, dummies_include=False)
 
 predictors = features
 predictors.pop(0) # pop flag
 
+features = [
+FLAG,
+'age',
+'prev_hospital_stay',
+'days_between',
+'days_after_anti',
+'days_in_hospital',
+'num_consult',
+'share_room_MDR',
+'hospital_stay_w_FN',
+'days_neutropenic_wo_fn',
+'num_rooms_b',
+'num_movements',
+'gender__female',
+'emergency',
+'antibiotic_count',
+'dummy_Cancer.linfoproliferativo',
+'cito_group_2',
+'cito_group_3',
+'mucositis',
+'dummy_Mieloma.like',
+'Alo_TP']
+predictors = features
+predictors.pop(0) # pop flag
+
+
 # train / test split
-X = df_train_cln[features].values
+X = df_train_cln[predictors].values
 y = df_train_cln[FLAG].values
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
-train = pd.DataFrame(X_train, columns=[features])
+train = pd.DataFrame(X_train, columns=[predictors])
 train[FLAG] = list(y_train)
 
-test = pd.DataFrame(X_test, columns=[features])
+test = pd.DataFrame(X_test, columns=[predictors])
 test[FLAG] = y_test
-
-# standardization
-scaler = StandardScaler()
-dtrain = pd.DataFrame(scaler.fit_transform(train[predictors]), columns=features)
-dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=features)
-
-# weight
-num_flags = sum(y_train)
-
-w = []
-n1 = sum(y_train)
-n = len(y_train)
-for y_item in y_train:
-    if y_item == 1:
-        w.append(1)
-    elif y_item == 0:
-        w.append(n1/(n-n1))
-
-# xgboost model
-# ------------------------------------------------
-
-xgb1 = XGBClassifier(
- learning_rate =0.1,
- n_estimators=1000,
- max_depth=5,
- min_child_weight=1,
- gamma=1,
- subsample=0.8,
- colsample_bytree=0.8,
- objective= 'binary:logistic',
- reg_alpha=0,
- nthread=4,
- #scale_pos_weight=1,
- seed=27)
-
-xgb1, df_features = xgboost_fit(xgb1, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
-
-
-predictors = list(df_features[:20].feature.values)
-
-train2 = train[[predictors]]
-test2 = test[[predictors]]
 
 # standardization
 scaler = StandardScaler()
 dtrain = pd.DataFrame(scaler.fit_transform(train[predictors]), columns=predictors)
 dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=predictors)
 
+# LassoCV
 
-xgb2 = XGBClassifier(
- learning_rate =0.001,
- n_estimators=1000,
- max_depth=4,
- min_child_weight=1,
- gamma=1,
- subsample=0.8,
- colsample_bytree=0.8,
- objective= 'binary:logistic',
- reg_alpha=0,
- nthread=4,
- #scale_pos_weight=1,
- seed=27)
+alphas = [0.0000001, 0.00001, 0.0001, 0.01, 0.1, 1, 10]
 
-xgb1, df_features = xgboost_fit(xgb2, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
+for alpha in alphas:
 
-# grid search
-# params = {
-#         'min_child_weight': [1, 3, 5, 7, 10],
-#         'gamma': [0.5, 1, 1.5, 2, 5],
-#         'subsample': [0.6, 0.8, 1.0],
-#         'colsample_bytree': [0.6, 0.8, 1.0],
-#         'max_depth': [3, 4, 5],
-#         'learning_rate': [0.01, 0.005, 0.001]
-#         }
-#
-# gsearch1 = GridSearchCV(
-#     estimator = XGBClassifier(
-#         learning_rate =0.1,
-#         n_estimators=1000,
-#         max_depth=5,
-#         min_child_weight=1,
-#         gamma=0,
-#         subsample=0.8,
-#         colsample_bytree=0.8,
-#         objective= 'binary:logistic',
-#         nthread=4,
-#         scale_pos_weight=1,
-#         seed=27,
-#         verbose_eval=1),
-#     param_grid = params, scoring='roc_auc', n_jobs=4, iid=False, cv=5, return_train_score=False)
-#
-# gsearch1.fit(dtrain[predictors].values, y_train)
-# xgboost_fit(gsearch1.best_estimator_, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
-# gsearch1.best_params_, gsearch1.best_score_
+    clf = linear_model.LassoCV(alphas=[alpha])
+
+    clf.fit(dtrain[predictors].values, y_train)
+    pred_train = clf.predict(dtrain[predictors].values)
+    print( "AUC Score (Train): %f" % metrics.roc_auc_score(y_train, pred_train))
+
+    pred_test = clf.predict(dtest[predictors].values)
+    print( "AUC Score (Test): %f" % metrics.roc_auc_score(y_test, pred_test))
+
+
+clf = linear_model.LassoCV(alphas=[0.0001])
+
+clf.fit(dtrain[predictors].values, y_train)
+pred_train = clf.predict(dtrain[predictors].values)
+print( "AUC Score (Train): %f" % metrics.roc_auc_score(y_train, pred_train))
+
+pred_test = clf.predict(dtest[predictors].values)
+print( "AUC Score (Test): %f" % metrics.roc_auc_score(y_test, pred_test))
+
 
 # ------------------------------------------------
 # Submission
 # ------------------------------------------------
-df_subm = pd.DataFrame(scaler.transform(df_test_cln[predictors]), columns=features)
+df_subm = pd.DataFrame(scaler.transform(df_test_cln[predictors]), columns=predictors)
 
-y_subm = xgb1.predict_proba(df_subm[predictors])[:,1]
+y_subm = clf.predict(df_subm[predictors])
 
 df_subm['pred'] = y_subm
 
@@ -236,4 +197,4 @@ submission = df_test_cln[['ID']]
 submission['MDR'] = y_subm
 
 # Write the final CSV file.
-#submission.to_csv("./submissions/first-submission.csv", encoding='utf-8', index=False)
+submission.to_csv("./submissions/lasso_0000001_20.csv", encoding='utf-8', index=False)

@@ -1,4 +1,5 @@
 
+
 import numpy as np
 import pandas as pd
 from sklearn import metrics
@@ -104,9 +105,6 @@ pc_antibiotics = PCA_r(df_train_cln, features_antibiotic, 2, resulting_features_
 # Adding PCA columns to original dataset
 df_train_cln = pd.concat([df_train_cln, pc_diagnosis, pc_antibiotics], axis=1)
 
-df_train_cln.drop('room_list', axis=1, inplace=True)
-df_test_cln.drop('room_list', axis=1, inplace=True)
-
 # ------------------------------------------------
 # Modelling
 # ------------------------------------------------
@@ -115,12 +113,33 @@ FLAG = 'MDR'
 # extract features
 features = extract_features(df_train_cln, dummies_include=True)
 
+# Model 1 - ROOM LIST MODEL
+# ------------------------------------------------
+df_rooms = df_train_cln[['ID', FLAG, 'room_list']]
+
+for idx, row in df_rooms.iterrows():
+    try:
+        for room in row['room_list'].split(","):
+            room_col = room.strip()
+            df_rooms.loc[idx, room_col] = 1
+    except:
+        if np.isnan(row['room_list']):
+            df_rooms.loc[idx, 'UNK'] = 1
+        else:
+            room_col = row['room_list'].strip()
+            df_rooms.loc[idx, room_col] = 1
+
+df_rooms = df_rooms.fillna(0)
+df_rooms.drop('room_list', axis=1, inplace=True)
+df_rooms.drop('ID', axis=1, inplace=True)
+
+features = list(df_rooms.columns.values)
 predictors = features
 predictors.pop(0) # pop flag
 
 # train / test split
-X = df_train_cln[features].values
-y = df_train_cln[FLAG].values
+X = df_rooms[features].values
+y = df_rooms[FLAG].values
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
 
 train = pd.DataFrame(X_train, columns=[features])
@@ -129,25 +148,6 @@ train[FLAG] = list(y_train)
 test = pd.DataFrame(X_test, columns=[features])
 test[FLAG] = y_test
 
-# standardization
-scaler = StandardScaler()
-dtrain = pd.DataFrame(scaler.fit_transform(train[predictors]), columns=features)
-dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=features)
-
-# weight
-num_flags = sum(y_train)
-
-w = []
-n1 = sum(y_train)
-n = len(y_train)
-for y_item in y_train:
-    if y_item == 1:
-        w.append(1)
-    elif y_item == 0:
-        w.append(n1/(n-n1))
-
-# xgboost model
-# ------------------------------------------------
 
 xgb1 = XGBClassifier(
  learning_rate =0.1,
@@ -163,77 +163,6 @@ xgb1 = XGBClassifier(
  #scale_pos_weight=1,
  seed=27)
 
-xgb1, df_features = xgboost_fit(xgb1, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
+xgb1, df_features = xgboost_fit(xgb1, train, test, y_train, y_test, predictors, target=FLAG)
 
-
-predictors = list(df_features[:20].feature.values)
-
-train2 = train[[predictors]]
-test2 = test[[predictors]]
-
-# standardization
-scaler = StandardScaler()
-dtrain = pd.DataFrame(scaler.fit_transform(train[predictors]), columns=predictors)
-dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=predictors)
-
-
-xgb2 = XGBClassifier(
- learning_rate =0.001,
- n_estimators=1000,
- max_depth=4,
- min_child_weight=1,
- gamma=1,
- subsample=0.8,
- colsample_bytree=0.8,
- objective= 'binary:logistic',
- reg_alpha=0,
- nthread=4,
- #scale_pos_weight=1,
- seed=27)
-
-xgb1, df_features = xgboost_fit(xgb2, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
-
-# grid search
-# params = {
-#         'min_child_weight': [1, 3, 5, 7, 10],
-#         'gamma': [0.5, 1, 1.5, 2, 5],
-#         'subsample': [0.6, 0.8, 1.0],
-#         'colsample_bytree': [0.6, 0.8, 1.0],
-#         'max_depth': [3, 4, 5],
-#         'learning_rate': [0.01, 0.005, 0.001]
-#         }
-#
-# gsearch1 = GridSearchCV(
-#     estimator = XGBClassifier(
-#         learning_rate =0.1,
-#         n_estimators=1000,
-#         max_depth=5,
-#         min_child_weight=1,
-#         gamma=0,
-#         subsample=0.8,
-#         colsample_bytree=0.8,
-#         objective= 'binary:logistic',
-#         nthread=4,
-#         scale_pos_weight=1,
-#         seed=27,
-#         verbose_eval=1),
-#     param_grid = params, scoring='roc_auc', n_jobs=4, iid=False, cv=5, return_train_score=False)
-#
-# gsearch1.fit(dtrain[predictors].values, y_train)
-# xgboost_fit(gsearch1.best_estimator_, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
-# gsearch1.best_params_, gsearch1.best_score_
-
-# ------------------------------------------------
-# Submission
-# ------------------------------------------------
-df_subm = pd.DataFrame(scaler.transform(df_test_cln[predictors]), columns=features)
-
-y_subm = xgb1.predict_proba(df_subm[predictors])[:,1]
-
-df_subm['pred'] = y_subm
-
-submission = df_test_cln[['ID']]
-submission['MDR'] = y_subm
-
-# Write the final CSV file.
-#submission.to_csv("./submissions/first-submission.csv", encoding='utf-8', index=False)
+df_features

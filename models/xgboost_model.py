@@ -47,10 +47,13 @@ def xgboost_fit(alg, dtrain, dtest, ytrain, ytest, predictors, target, weight=No
     features_df = features_df.sort_values('importance', ascending=False)
     ind = np.arange(len(features_df['feature'].values))    # the x locations for the groups
 
+    print("\nImportances:")
+    #print(features_df)
+
     pyplot.figure(num=None, figsize=[12,4])
     pyplot.bar(range(len(features_df)), features_df['importance'].values)
     pyplot.xticks(ind, features_df['feature'].values, rotation='vertical')
     pyplot.ylabel('Feature Importance Score')
     pyplot.show()
 
-    return alg
+    return alg, features_df
