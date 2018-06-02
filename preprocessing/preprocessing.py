@@ -32,23 +32,28 @@ def preprocessing(df):
     df_Past_positive_dum = pd.get_dummies(df.Past_positive_result_from , prefix='Past_positive_')
     df = pd.concat([df, df_Past_positive_dum], axis=1)
 
-    def dates(df,days_neutropenic_wo_fn,dummie_days_neutropenic_wo_fn):
+    def dates(df,days_neutropenic_wo_fn,dummie_days_neutropenic_wo_fn, age):
         """ Create dates """
 
-        dates_columns = ["start_neutropenico","start_FN","birth_year"]
+        dates_columns = ["start_neutropenico", "start_FN", "birth_year"]
         for c in dates_columns:
-            df[c] = pd.to_datetime(df[c],format='%Y-%m-%d')
+            if c != "birth_year":
+                df[c] = pd.to_datetime(df[c],format='%Y-%m-%d')
+            else:
+                df[c] = pd.to_datetime(df[c],format="%Y")
 
         df[days_neutropenic_wo_fn] = df["start_FN"] - df["start_neutropenico"]
+        df[age] = df["start_FN"].dt.year - df["birth_year"].dt.year
 
         #conver to integer
         df[days_neutropenic_wo_fn] = df[days_neutropenic_wo_fn].dt.days
+
         #dummie if patient got FN after few days of having neutropenic status
         df[dummie_days_neutropenic_wo_fn] = np.where(df[days_neutropenic_wo_fn]>0, 1, 0)
 
         return df
 
-    dates(df,'days_neutropenic_wo_fn','dummie_days_neutropenic_wo_fn')
+    dates(df,'days_neutropenic_wo_fn','dummie_days_neutropenic_wo_fn', 'age')
 
     return df
 
@@ -62,6 +67,7 @@ def extract_features(df):
     & (~df.columns.str.contains('NHC'))
     & (~df.columns.str.contains('start_'))
     & (~df.columns.str.contains('Gender'))
+    & (~df.columns.str.contains('birth_year'))
     & (~df.columns.str.contains('Past_positive_result_from'))
     ].values # if index are necessary, remove .values
 
