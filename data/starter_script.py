@@ -13,6 +13,7 @@ import pandas as pd
 
 # -----1. Set configuration & Data Import.----- 
 # Enter your input data and output data paths below.
+
 PATH = os.getcwd() # Otherwise use your own path
 OUTPATH = os.getcwd()
 # Set the input data folder as default path.

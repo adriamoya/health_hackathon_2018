@@ -1,2 +1,5 @@
 *.DS_Store
 .idea
+.~lock*
+.ipynb_checkpoints/
+bielrv_EDA.ipynb
