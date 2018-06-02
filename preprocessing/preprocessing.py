@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import datetime
 
 from sklearn.decomposition import PCA
 from sklearn import preprocessing
@@ -61,6 +62,7 @@ def preprocessing(df):
     df['num_rooms_b'] = df['num_rooms'].apply(lambda x: x if x <= 2 else 3)
     df.drop('num_rooms', axis=1, inplace=True)
 
+
     # Times
     df['num_veces_enfermo'] = df['ID'].map(lambda x: str(x)[-1])
 
@@ -95,6 +97,9 @@ def preprocessing(df):
 
     dates(df,'days_neutropenic_wo_fn','dummie_days_neutropenic_wo_fn', 'age')
 
+    # Month
+    df['month'] = df['start_neutropenico'].apply(lambda x: x.month)
+    
     return df
 
 

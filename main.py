@@ -166,7 +166,7 @@ xgb1 = XGBClassifier(
 xgb1, df_features = xgboost_fit(xgb1, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
 
 
-predictors = list(df_features[:20].feature.values)
+predictors = list(df_features[:30].feature.values)
 
 train2 = train[[predictors]]
 test2 = test[[predictors]]
@@ -178,9 +178,9 @@ dtest = pd.DataFrame(scaler.transform(test[predictors]), columns=predictors)
 
 
 xgb2 = XGBClassifier(
- learning_rate =0.001,
+ learning_rate =0.1,
  n_estimators=1000,
- max_depth=4,
+ max_depth=5,
  min_child_weight=1,
  gamma=1,
  subsample=0.8,
@@ -191,7 +191,7 @@ xgb2 = XGBClassifier(
  #scale_pos_weight=1,
  seed=27)
 
-xgb1, df_features = xgboost_fit(xgb2, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
+xgb2, df_features = xgboost_fit(xgb2, dtrain, dtest, y_train, y_test, predictors, target=FLAG)
 
 # grid search
 # params = {
