@@ -22,6 +22,7 @@ def preprocessing(df):
 
     df.drop('room_list', axis=1, inplace=True)
     df['num_rooms_b'] = df['num_rooms'].apply(lambda x: x if x <= 2 else 3)
+    df.drop('num_rooms', axis=1, inplace=True)
 
     # Gender dummies
     df_gender_dum = pd.get_dummies(df.Gender , prefix='gender_')
