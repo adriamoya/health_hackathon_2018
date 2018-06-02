@@ -1,5 +1,9 @@
 *.DS_Store
 .idea
 .~lock*
+env/
 .ipynb_checkpoints/
+
 bielrv_EDA.ipynb
+adriamoya_EDA.ipynb
+data_preprocessing.ipynb
