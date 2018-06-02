@@ -122,6 +122,18 @@ train[FLAG] = list(y_train)
 test = pd.DataFrame(X_test, columns=[features])
 test[FLAG] = y_test
 
+# weight
+num_flags = sum(y_train)
+
+w = []
+n1 = sum(y_train)
+n = len(y_train)
+for y_item in y_train:
+    if y_item == 1:
+        w.append(1)
+    elif y_item == 0:
+        w.append(n1/(n-n1))
+
 # xgboost model
 xgb1 = XGBClassifier(
  learning_rate =0.1,
@@ -137,3 +149,4 @@ xgb1 = XGBClassifier(
  seed=27)
 
 xgboost_fit(xgb1, train, test, predictors, target=FLAG)
+xgboost_fit(xgb1, train, test, predictors, target=FLAG, weight=w)

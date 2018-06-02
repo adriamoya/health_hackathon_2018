@@ -8,11 +8,11 @@ import matplotlib.pylab as plt
 from matplotlib.pylab import rcParams
 rcParams['figure.figsize'] = 12, 4
 
-def xgboost_fit(alg, dtrain, dtest, predictors, target, verbose=0, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
+def xgboost_fit(alg, dtrain, dtest, predictors, target, weight=None, verbose=0, useTrainCV=True, cv_folds=5, early_stopping_rounds=50):
 
     if useTrainCV:
         xgb_param = alg.get_xgb_params()
-        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain[target].values.flatten())
+        xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain[target].values.flatten(), weight=weight)
         cvresult = xgb.cv(
             xgb_param,
             xgtrain,

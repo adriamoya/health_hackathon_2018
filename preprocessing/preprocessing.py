@@ -73,6 +73,9 @@ def extract_features(df):
     & (~df.columns.str.contains('start_'))
     & (~df.columns.str.contains('Gender'))
     & (~df.columns.str.contains('birth_year'))
+    & (~df.columns.str.contains('PC1'))
+    & (~df.columns.str.contains('PC2'))
+    # & (~df.columns.str.contains('dummy_'))
     & (~df.columns.str.contains('Past_positive_result_from'))
     ].values # if index are necessary, remove .values
 
