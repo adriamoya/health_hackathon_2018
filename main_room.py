@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV #Perforing grid search
 
-from preprocessing.preprocessing import preprocessing, extract_features, PCA_r
+from preprocessing.preprocessing import preprocessing, extract_features, PCA_r, generate_rooms
 
 from xgboost import XGBClassifier
 from models.xgboost_model import xgboost_fit
@@ -130,6 +130,12 @@ for idx, row in df_rooms.iterrows():
             df_rooms.loc[idx, room_col] = 1
 
 df_rooms = df_rooms.fillna(0)
+
+list_rooms = list(df_rooms.columns.values[3:])
+
+
+df_test_rooms = generate_rooms(df_test_cln, list_rooms)
+
 df_rooms.drop('room_list', axis=1, inplace=True)
 df_rooms.drop('ID', axis=1, inplace=True)
 
@@ -160,9 +166,11 @@ xgb1 = XGBClassifier(
  objective= 'binary:logistic',
  reg_alpha=0,
  nthread=4,
- #scale_pos_weight=1,
+ scale_pos_weight=1,
  seed=27)
 
 xgb1, df_features = xgboost_fit(xgb1, train, test, y_train, y_test, predictors, target=FLAG)
 
-df_features
+y_room = xgb1.predict_proba(df_rooms[predictors])[:,1]
+
+df_train_cln['y_room'] = y_room

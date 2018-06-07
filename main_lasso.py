@@ -119,25 +119,31 @@ predictors.pop(0) # pop flag
 features = [
 FLAG,
 'age',
-'prev_hospital_stay',
 'days_between',
 'days_after_anti',
+'antib_MG',
+'month',
+'prev_hospital_stay',
 'days_in_hospital',
 'num_consult',
 'share_room_MDR',
-'hospital_stay_w_FN',
+'danger_room',
 'days_neutropenic_wo_fn',
+'hospital_stay_w_FN',
+'emergency',
 'num_rooms_b',
 'num_movements',
-'gender__female',
-'emergency',
-'antibiotic_count',
 'dummy_Cancer.linfoproliferativo',
-'cito_group_2',
-'cito_group_3',
-'mucositis',
+'antibiotic_count',
+'gender__female',
+'dummy_LAM',
 'dummy_Mieloma.like',
-'Alo_TP']
+'gender__male',
+'Past_positive__Culture',
+'dummy_others.LL',
+'cito_group_2',
+'d_days_between']
+
 predictors = features
 predictors.pop(0) # pop flag
 
@@ -174,7 +180,7 @@ for alpha in alphas:
     print( "AUC Score (Test): %f" % metrics.roc_auc_score(y_test, pred_test))
 
 
-clf = linear_model.LassoCV(alphas=[0.0001])
+clf = linear_model.LassoCV(alphas=[0])
 
 clf.fit(dtrain[predictors].values, y_train)
 pred_train = clf.predict(dtrain[predictors].values)
